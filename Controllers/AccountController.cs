@@ -62,8 +62,12 @@ public class AccountController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public ActionResult<LoginResponse> Login(LoginRequest request)
+    public ActionResult<LoginResponse> Login([FromBody] LoginRequest request)
     {
+        if(ModelState.IsValid == false)
+        {
+            return BadRequest(new {message = ModelState.SelectMany(x => x.Value.Errors.Select(y => y.ErrorMessage)).FirstOrDefault()});
+        }
         if (request == null)
         {
             return BadRequest(new {message = "Request body is null."});

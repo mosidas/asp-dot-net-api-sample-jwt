@@ -16,10 +16,15 @@ builder.Services.AddSingleton<JwtHelper>();
 builder.Services.AddSingleton<IIssueRepository, IssueRepository>();
 
 
-builder.Services.AddControllers(options =>
-            {
-                options.Filters.Add(typeof(CommonFilter));
-            });
+builder.Services
+    .AddControllers(options =>
+    {
+        options.Filters.Add(typeof(CommonFilter));
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.SuppressModelStateInvalidFilter = true;
+    });
 
 // swagger
 builder.Services.AddSwaggerGen(c =>
