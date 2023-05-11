@@ -49,8 +49,6 @@ public class IssueController : ControllerBase
 
         var str = _configuration["super-secret-key"] ?? "null";
         var sec = _configuration.GetConnectionString("super-secret-key") ?? "null";
-        //var sec = _configuration["SQLAZURECONNSTR_super-secret-key"] ?? "null";
-        //_configuration.GetChildren().ToList().ForEach(x => issues.Message += $"key: {x.Key} value: {x.Value}");
         _logger.LogInformation($"super-secret-key: {str}");
         issues.Message = $"super-secret-key: {str} SQLAZURECONNSTR_super-secret-key: {sec}";
 
@@ -117,7 +115,9 @@ public class IssueController : ControllerBase
 
         var ret = new IssueResponce(new List<Issue>() { newIssue });
 
-        return Ok(ret);
+        var uri = new Uri($"{Request.Scheme}://{Request.Host}{Request.Path}/{newIssue.Id}");
+
+        return Created(uri,ret);
     }
 
     /// <summary>

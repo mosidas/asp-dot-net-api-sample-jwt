@@ -10,9 +10,6 @@
 
 ## セキュリティ
 
-
-
-
 ### 秘密文字列の管理
 
 - https://qiita.com/tnishiki/items/0c3e73ed28a66591d676
@@ -21,13 +18,21 @@
 - https://qiita.com/tnishiki/items/f51959c94412c43e7fa5
 - https://blog.beachside.dev/entry/2019/11/21/190000
 
-#### UserSecrets
+#### UserSecrets + App Service 接続文字列
+
+- UserSecretsと、App Service の接続文字列で秘密文字列を管理する。
+- ローカルで実行する場合は、UserSecretsで設定した文字列を参照する。
+- Azure上で実行する場合は、App Service の接続文字列で設定した文字列を参照する。
+- UserSecretsの設定ファイルは、`%APPDATA%\Microsoft\UserSecrets\<user_secrets_id>\secrets.json`に保存されるので、Githubにpushしてしまうリスクを減らせる。
 
 - 参考: 
   - https://learn.microsoft.com/ja-jp/aspnet/core/security/app-secrets?view=aspnetcore-7.0&tabs=windows
   - https://qiita.com/tnishiki/items/0c3e73ed28a66591d676
   - https://araramistudio.jimdo.com/2021/10/18/c-azure-app-service%E3%81%A7%E7%92%B0%E5%A2%83%E5%A4%89%E6%95%B0%E3%82%92%E5%88%A9%E7%94%A8%E3%81%99%E3%82%8B/
   - https://tech-lab.sios.jp/archives/33304
+  - https://blog.beachside.dev/entry/2019/11/21/190000
+
+##### ローカル環境(UserSecrets)
 
 - パッケージインストール
 ```bash
@@ -38,20 +43,27 @@ dotnet add package Microsoft.Extensions.Configuration.UserSecrets
 ```bash
 dotnet user-secrets init
 ```
-- 設定(ローカル環境)
-```bash
-dotnet user-secrets set "super-secret-key" "hoge"
-dotnet user-secrets set "SQLAZURECONNSTR_super-secret-key" "foobar"
 
+- 設定
+```bash
+dotnet user-secrets set "super-secret-key" "hoge" //普通の設定
+dotnet user-secrets set "ConnectionStrings:super-secret-key" "foobar" //接続文字列の設定
 ```
-- 設定(Azure環境)
-  - App Service -> 構成 -> アプリケーション設定 から「新しいアプリケーション設定」で設定可能。
+
+##### Azure環境(App Service 接続文字列)
+
+- App Service -> 構成 -> アプリケーション設定 から「新しい接続文字列」で設定可能。
+  - 名前: super-secret-key
+  - 値: piyo
+  - 種類: SQL Azure
+
+##### ソースコード内での参照
 -以下のように参照できる。
 ```cs
-private readonly IConfiguration _configuration;
+private readonly IConfiguration _configuration; // configrationをDI
 :
 :
-var str = _configuration["super-secret-key"]; // "hoge"
+var str = _configuration.GetConnctionString["super-secret-key"]; // ローカルだと"foobar"、Azureだと"piyo"が取得できる。
 ```
 
 
@@ -163,6 +175,8 @@ app.Map("/world", world => {
   - [翻訳(途中まで)](dotnet6.0_JWT_Authentication_Tutorial_with_Example_API.md)
   - https://zukucode.com/2021/04/aspnet-jwt-auth.html
   - https://jasonwatmore.com/post/2021/12/14/net-6-jwt-authentication-tutorial-with-example-api#jwt-middleware-cs
+- Cookie
+  - https://zukucode.com/2020/11/aspnet-spa-auth.html
 
 ## ロギングのやり方
 
@@ -179,6 +193,30 @@ app.Map("/world", world => {
 
 - https://blog.beachside.dev/entry/2021/01/22/123000
 - https://learn.microsoft.com/ja-jp/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-7.0&tabs=visual-studio
+
+#### xmlコメントをswaggerに反映させる
+
+- 以下のように追記(Prgram.cs)
+```cs
+// Register the Swagger generator
+services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+
+    // Set the XML comments file path for Swagger
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
+```
+- .csproj
+```xml
+<PropertyGroup>
+  <!-- ... -->
+  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  <NoWarn>$(NoWarn);1591</NoWarn>
+</PropertyGroup>
+```
 
 ## REST APIの設計
 
